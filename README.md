@@ -1,0 +1,2 @@
+# mds
+Marketing Data Science
