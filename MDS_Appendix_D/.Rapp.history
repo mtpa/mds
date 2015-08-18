@@ -1,0 +1,1100 @@
+x <- c(100,101,102,103)#
+y <- log(x)#
+#
+my.data.frame <- data.frame(x,y)#
+#
+print(my.data.frame)
+new.data.frame <- my.data.frame[-2,]
+new.data.frame
+new.data.frame <- my.data.frame[-c(2,3),]
+new.data.frame
+new.data.frame <- my.data.frame[-2,3),]
+new.data.frame <- my.data.frame[-2,3,]
+new.data.frame
+x <- c(100,101,102,103)#
+y <- log(x)#
+#
+my.data.frame <- data.frame(x,y)#
+#
+print(my.data.frame)#
+#
+new.data.frame <- my.data.frame[-c(2,3),]#
+#
+print(new.data.frame)
+load("/Users/northwestern/Desktop/450_Assignments_2_and_3_work_more/XYZ_complete_customer_data_frame.RData")
+ls()
+names(complete.customer.data.frame)
+library(grid)
+require(ggplot2) plots = lapply(1:5, function(.x) qplot(1:10,rnorm(10), main=paste("plot",.x))) require(gridExtra) do.call(grid.arrange, plots) require(lattice) grid.arrange(qplot(1:10), xyplot(1:10~1:10), tableGrob(head(iris)), nrow=2, as.table=TRUE, main="test main", sub=textGrob("test sub", gp=gpar(font=2)))
+require(ggplot2) #
+plots = lapply(1:5, function(.x) #
+qplot(1:10,rnorm(10), main=paste("plot",.x))) #
+require(gridExtra) #
+do.call(grid.arrange, plots) #
+require(lattice) #
+grid.arrange(qplot(1:10), xyplot(1:10~1:10), tableGrob(head(iris)), nrow=2, as.table=TRUE, main="test main", sub=textGrob("test sub", gp=gpar(font=2)))
+library(gamlss.dist)
+rPO(1)
+rPO(1, mu = 7)
+rPO(10, mu = 7)
+mean(rPO(1000, mu = 5))
+load("data_aggregate_5_models.Rdata")#
+#
+library(randomForest)#
+library(randomGLM)#
+library(cvTools)#
+#
+# ----------------------------------#
+# USER-DEFINED FUNCTIONS#
+# ----------------------------------#
+report.performance <- function(ypredicted,yobserved)#
+{#
+if(sd(ypredicted) == 0) cat("\n","  No variability in forecasts",sep="") # non-normal execution#
+if(sd(yobserved) == 0) cat("\n","  No variability in actuals",sep="") # non-normal execution#
+##
+if((sd(ypredicted) != 0) && (sd(yobserved) != 0))#
+{ # begin if-block for normal execution#
+if(cor(ypredicted,yobserved) >= 0.0) cat("\n","  Proportion of response variance accounted for = ",#
+round(cor(ypredicted,yobserved)^2,digits=4),sep="")#
+if(cor(ypredicted,yobserved) < 0.0) cat("\n","  Negative correlation between actual and forecast",sep="")#
+cat("\n","  Root mean squared error of forecast = ",#
+round(sqrt(mean((yobserved-ypredicted)^2)),digits=4),sep="")#
+relative.absolute.error <- numeric(length(yobserved))#
+for(i in seq(along=yobserved))#
+  {if(ypredicted[i]!=0) relative.absolute.error[i] <- abs((yobserved[i]-ypredicted[i])/ypredicted[i])#
+   if(ypredicted[i]==0) relative.absolute.error[i] <- 0#
+  }#
+cat("\n","  Mean relative absolute percent error of forecast = ",round(mean(relative.absolute.error)*100,digits=2),sep="")#
+ten.percent.count <- 0#
+fifteen.percent.count <- 0#
+twenty.percent.count <- 0#
+twentyfive.percent.count <- 0#
+thirty.percent.count <- 0#
+for(i in seq(along=relative.absolute.error))#
+ {if(relative.absolute.error[i] <= 0.10) ten.percent.count <- ten.percent.count + 1#
+ if(relative.absolute.error[i] <= 0.15) fifteen.percent.count <- fifteen.percent.count + 1#
+ if(relative.absolute.error[i] <= 0.20) twenty.percent.count <- twenty.percent.count + 1#
+ if(relative.absolute.error[i] <= 0.25) twentyfive.percent.count <- twentyfive.percent.count + 1#
+ if(relative.absolute.error[i] <= 0.30) thirty.percent.count <- thirty.percent.count + 1#
+ }#
+cat("\n","  Actual within 10 percent of forecast = ",ten.percent.count,#
+" (",round((ten.percent.count/length(relative.absolute.error))*100,digits=0)," percent)",sep="")#
+cat("\n","  Actual within 15 percent of forecast = ",fifteen.percent.count,#
+" (",round((fifteen.percent.count/length(relative.absolute.error))*100,digits=0)," percent)",sep="")#
+cat("\n","  Actual within 20 percent of forecast = ",twenty.percent.count,#
+" (",round((twenty.percent.count/length(relative.absolute.error))*100,digits=0)," percent)",sep="")#
+cat("\n","  Actual within 25 percent of forecast = ",twentyfive.percent.count,#
+" (",round((twentyfive.percent.count/length(relative.absolute.error))*100,digits=0)," percent)",sep="")#
+cat("\n","  Actual within 30 percent of forecast = ",thirty.percent.count,#
+" (",round((thirty.percent.count/length(relative.absolute.error))*100,digits=0)," percent)","\n",sep="")#
+#
+} # end if-block for normal execution#
+##
+} # end of function actual.to.predicted.evaluation#
+cat("\n","defined function report.performance","\n")#
+# set up user-defined functions to for tomrandomGLM modeling object#
+# this model object takes standard formula and data frame input#
+# for its fitting and prediction functions#
+tomrandomGLM <- function(my.formula, data) {#
+  my.model.frame <- model.frame(formula = my.formula, data)#
+  randomGLM.fit <- randomGLM(x = model.matrix(attr(my.model.frame, "terms"), my.model.frame)[,-1], #
+    y <-model.extract(my.model.frame, "response"), maxInteractionOrder = 2)#
+  RET <- list(randomGLM.fit, my.formula)    #
+  class(RET) <- c("tomrandomGLM", "list")#
+  RET #
+  }#
+predict.tomrandomGLM <- function(my.object, newdata) {#
+  if(!inherits(my.object, "tomrandomGLM")) stop("attempt to predict non-tomrandomGLM object")#
+  randomglm.fit <- my.object[[1]]  # note class(randomglm.fit) = c("randomGLM", "list")  #
+  my.formula <- my.object[[2]]#
+  my.model.frame <- model.frame(formula = my.formula, data = newdata, na.action = NULL)#
+  predict(randomglm.fit, #
+  newdata = matrix(model.matrix(attr(my.model.frame, "terms"), my.model.frame)[,-1],#
+  nrow = nrow(my.model.frame), ncol = (ncol(my.model.frame) -1) )) #
+  }#
+cat("\n","defined function tomrandomGLM functions","\n")#
+# ----------------------------------#
+# FULL MODEL SPECIFICATION#
+# ----------------------------------#
+#
+full.model.spec <- {FILE_AMT ~ VEHICLE_YEAR + VEHICLE_ODOMETER + SECONDARYIMPACT +#
+  SELECTED_MODEL + STATE_REGION + REGION +                  #
+  SUM_REPAIR_PART_CNT + SUM_REPAIR_PART_AMT + SUM_REPAIR_LABOR_AMT + SUM_REPLACE_PART_CNT +      #
+  SUM_REPLACE_PART_AMT + SUM_REPLACE_LABOR_AMT + #
+  SUM_PART_CNT + SUM_PART_AMT + SUM_LABOR_AMT +#
+  REPAIR_PART_CNT_1 + REPAIR_PART_AMT_1 +         #
+  REPAIR_LABOR_AMT_1 + REPLACE_PART_CNT_1 + REPLACE_PART_AMT_1 + REPLACE_LABOR_AMT_1 +       #
+  REPAIR_PART_CNT_2 + REPAIR_PART_AMT_2 + REPAIR_LABOR_AMT_2 + REPLACE_PART_CNT_2 +       #
+  REPLACE_PART_AMT_2 + REPLACE_LABOR_AMT_2 + REPAIR_PART_CNT_3 + REPAIR_PART_AMT_3 +        #
+  REPAIR_LABOR_AMT_3 + REPLACE_PART_CNT_3 + REPLACE_PART_AMT_3 + REPLACE_LABOR_AMT_3 +       #
+  REPAIR_PART_CNT_4 + REPAIR_PART_AMT_4 + REPAIR_LABOR_AMT_4 + REPLACE_PART_CNT_4 +       #
+  REPLACE_PART_AMT_4 + REPLACE_LABOR_AMT_4 + REPAIR_PART_CNT_5 + REPAIR_PART_AMT_5 +        #
+  REPAIR_LABOR_AMT_5 + REPLACE_PART_CNT_5 + REPLACE_PART_AMT_5 + REPLACE_LABOR_AMT_5  +      #
+  REPAIR_PART_CNT_6 + REPAIR_PART_AMT_6 + REPAIR_LABOR_AMT_6 + REPLACE_PART_CNT_6  +       #
+  REPLACE_PART_AMT_6 + REPLACE_LABOR_AMT_6 + REPAIR_PART_CNT_7 + REPAIR_PART_AMT_7 +        #
+  REPAIR_LABOR_AMT_7 + REPLACE_PART_CNT_7 + REPLACE_PART_AMT_7 + REPLACE_LABOR_AMT_7 +      #
+  REPAIR_PART_CNT_8 + REPAIR_PART_AMT_8 + REPAIR_LABOR_AMT_8 + REPLACE_PART_CNT_8  +       #
+  REPLACE_PART_AMT_8 + REPLACE_LABOR_AMT_8 + REPAIR_PART_CNT_9 + REPAIR_PART_AMT_9 +        #
+  REPAIR_LABOR_AMT_9 + REPLACE_PART_CNT_9 + REPLACE_PART_AMT_9 + REPLACE_LABOR_AMT_9 +       #
+  REPAIR_PART_CNT_10 + REPAIR_PART_AMT_10 + REPAIR_LABOR_AMT_10 + REPLACE_PART_CNT_10 +     #
+  REPLACE_PART_AMT_10 + REPLACE_LABOR_AMT_10 +#
+  SUM_PART_CNT_1 + SUM_PART_AMT_1 + SUM_LABOR_AMT_1 +#
+  SUM_PART_CNT_2 + SUM_PART_AMT_2 + SUM_LABOR_AMT_2 +#
+  SUM_PART_CNT_3 + SUM_PART_AMT_3 + SUM_LABOR_AMT_3 +#
+  SUM_PART_CNT_4 + SUM_PART_AMT_4 + SUM_LABOR_AMT_4 +#
+  SUM_PART_CNT_5 + SUM_PART_AMT_5 + SUM_LABOR_AMT_5 +#
+  SUM_PART_CNT_6 + SUM_PART_AMT_6 + SUM_LABOR_AMT_6 +#
+  SUM_PART_CNT_7 + SUM_PART_AMT_7 + SUM_LABOR_AMT_7 +#
+  SUM_PART_CNT_8 + SUM_PART_AMT_8 + SUM_LABOR_AMT_8 +#
+  SUM_PART_CNT_9 + SUM_PART_AMT_9 + SUM_LABOR_AMT_9 +#
+  SUM_PART_CNT_10 + SUM_PART_AMT_10 + SUM_LABOR_AMT_10}#
+# ---------------------------------#
+# TWO-WAY PARTITION#
+# ---------------------------------#
+#
+set.seed(9999)#
+aggregate.case.data$TRAIN_TEST <- rbinom(nrow(aggregate.case.data), 1, 0.33)#
+train.data <- subset(aggregate.case.data, subset = (TRAIN_TEST == 0))#
+test.data <- subset(aggregate.case.data, subset = (TRAIN_TEST == 1))
+ls()
+index <- c(1:10)  #Create Variables to play with
+price <- c(200,220,235,215,240,245,260,250,240,255)
+varp <- c(7,6,7,6,5,6,7,6,9,10)
+df <- data.frame(index, price, varp)   #Assemble the Data Frame
+cols.new <- paste("log.", names(df[2:ncol(df)]), sep = "")  #Create names of new variables
+cols.old <- names(df[2:ncol(df)]) #Get names of old columns
+cols.old
+cols.new
+df[cols.new] <- lapply(df[cols.old], log)  #Natural Log transform on variables
+df
+df.ts=ts(df) # Convert to time series
+df.ts
+df.ts$log.price.d1 <- diff(df.ts$log.price,lag = 1, difference = 1)
+acf(df.ts.log.price)
+acf(df.ts$log.price)
+str(df.ts)
+acf(df.ts)
+first.differeneces <- diff(df.ts, lag = 1)
+first.differences
+first.diff <- diff(df.ts, lag = 1)
+first.diff
+library(MASS)
+cluster <- matrix(data = c(1,2,3,4,5,6), #
+           nrow = 2, ncol = 3, byrow = TRUE,#
+           dimnames = NULL)
+cluster
+cluster <- matrix(data = c(1,2,3,4,6,9), #
+           nrow = 2, ncol = 3, byrow = TRUE,#
+           dimnames = NULL)
+cluster
+cluster.row.mean <- sapply(cluster,1,mean)
+cluster.row.mean <- mapply(cluster,1,mean)
+cluster.row.mean <- apply(cluster, 1, FUN = mean)
+cluster.row.mean
+cluster <- matrix(data = c(1,2,3,5,6,9), #
+           nrow = 2, ncol = 3, byrow = TRUE,#
+           dimnames = NULL)#
+#
+cluster.row.mean <- apply(cluster, 1, FUN = mean)
+cluster
+cluster.row.mean
+cluster <- matrix(data = c(1,2,3,5,6,10), #
+           nrow = 2, ncol = 3, byrow = TRUE,#
+           dimnames = NULL)#
+#
+cluster.row.mean <- apply(cluster, 1, FUN = mean)
+cluster.row.mean
+cluster.row.mean <- #
+  matrix(rep(apply(cluster, 1, FUN = mean),times = nrow(cluster)))
+cluster.row.mean
+cluster.row.mean <- #
+  matrix(rep(apply(cluster, 1, FUN = mean),times = nrow(cluster)),#
+    nrow = 2, ncol = 3, byrow = TRUE,dimnames = NULL))
+cluster.row.mean <- #
+  matrix(rep(apply(cluster, 1, FUN = mean),times = nrow(cluster)),#
+    nrow = 2, ncol = 3, byrow = TRUE,dimnames = NULL)
+cluster.row.mean <- #
+  matrix(rep(apply(cluster, 1, FUN = mean),times = ncol(cluster)),#
+    nrow = 2, ncol = 3, byrow = TRUE,dimnames = NULL)
+cluster.row.mean
+cluster.row.mean <- #
+  matrix(rep(apply(cluster, 1, FUN = mean),times = ncol(cluster)),#
+    nrow = 2, ncol = 3, byrow = FALSE, dimnames = NULL)
+cluster.row.mean
+cluster.col.mean <- #
+  matrix(rep(apply(cluster, 2, FUN = mean),times = nrow(cluster)),#
+    nrow = 2, ncol = 3, byrow = TRUE, dimnames = NULL)
+cluster.col.mean
+cluster
+cluster.all.mean <- #
+  matrix(mean(cluster),#
+    nrow = 2, ncol = 3, byrow = TRUE, dimnames = NULL)
+cluster.all.mean
+cellresidue <- (cluster - #
+               cluster.row.mean - #
+               cluster.col.mean -#
+               cluster.all.mean) / (nrow(cluster) * ncol(cluster))
+cellresidue
+residue <- function(cluster) {#
+  cluster.row.mean <- #
+    matrix(rep(apply(cluster, 1, FUN = mean),times = ncol(cluster)),#
+      nrow = 2, ncol = 3, byrow = FALSE, dimnames = NULL)                   #
+#
+  cluster.col.mean <- #
+    matrix(rep(apply(cluster, 2, FUN = mean),times = nrow(cluster)),#
+      nrow = 2, ncol = 3, byrow = TRUE, dimnames = NULL) #
+  cluster.all.mean <- #
+    matrix(mean(cluster),#
+      nrow = 2, ncol = 3, byrow = TRUE, dimnames = NULL)  #
+  cluster - #
+    cluster.row.mean - #
+    cluster.col.mean -#
+    cluster.all.mean) / (nrow(cluster) * ncol(cluster))#
+}  #
+# demonstration of residue function  #
+cluster <- matrix(data = c(1,2,3,5,6,10), #
+           nrow = 2, ncol = 3, byrow = TRUE,#
+           dimnames = NULL)#
+residue(cluster)
+residue <- function(cluster) {#
+  cluster.row.mean <- #
+    matrix(rep(apply(cluster, 1, FUN = mean),times = ncol(cluster)),#
+      nrow = 2, ncol = 3, byrow = FALSE, dimnames = NULL)                   #
+#
+  cluster.col.mean <- #
+    matrix(rep(apply(cluster, 2, FUN = mean),times = nrow(cluster)),#
+      nrow = 2, ncol = 3, byrow = TRUE, dimnames = NULL) #
+  cluster.all.mean <- #
+    matrix(mean(cluster),#
+      nrow = 2, ncol = 3, byrow = TRUE, dimnames = NULL)  #
+  (cluster - #
+    cluster.row.mean - #
+    cluster.col.mean -#
+    cluster.all.mean) / (nrow(cluster) * ncol(cluster))#
+}
+demonstration of residue function  #
+cluster <- matrix(data = c(1,2,3,5,6,10), #
+           nrow = 2, ncol = 3, byrow = TRUE,#
+           dimnames = NULL)#
+residue(cluster)
+2^228
+help(load)
+help(save)
+https://www.vmwwwfs.scsnu.northwestern.edu/
+R Linear Models.... #
+#
+# programming with data from automobile pricing and bodyfat#
+#
+library(car) # package associated with Fox and Weisberg(2011)#
+library(caret) # package from Max Kuhn (2008,2012)#
+#
+# check out the documentation on CRAN... reference manuals, vinettes#
+#
+# somewhat confusing... we are using functions from the car package #
+# and the cars data frame from the caret package#
+# see Kuiper and Sklar (2011) for discussion of the cars data #
+#
+# Variables of interest#
+# Price Kelly Blue Book price in 2005#
+# Make (Buick=1, Cadillac=2, Chevrolet=3, Pontiac=4, Saab=5, Saturn=6) #
+# Type (Convertible=1, Coupe=2, Hatchback=3, Sedan=4, Wagon=5) #
+# Cyl (number of cylinders: 4, 6, or 8)#
+# Doors (number of doors: 2, 4) #
+# Cruise (1 = cruise control, 0 = no cruise control) #
+# Sound (1 = upgraded speakers, 0 = standard speakers) #
+# Leather (1 = leather seats, 0 = not leather seats) #
+# Mileage (number of miles the car has been driven)#
+data(cars)#
+cat("\n","----- Initial Structure of cars data frame -----","\n")#
+# examine the structure of the initial data frame#
+print(str(cars))
+data(cars)
+str(cars)
+data(iris)
+str(iris)
+data(titanic)
+PREDICT 412 Logistic Regression Demo with ROC curves#
+#
+library(MMST)#
+library(ROCR)#
+#
+data(spambase)#
+#
+#divide the data into training and test sets 70/30#
+set.seed(1234)#
+integer.splitter <- runif(nrow(spambase))#
+integer.splitter <- ifelse(integer.splitter <= 0.7,1,0) # split data 70/30 training test#
+train <- spambase[which(integer.splitter == 1),]#
+test <- spambase[which(integer.splitter == 0),]#
+#
+# fit model logistic regression with a few of the explanatory variables for demo#
+model.logistic <- glm(class ~ make + address + all + our + over + remove + internet, #
+  family=binomial(link=logit), data=train,)#
+print(summary(model.logistic))#
+#
+# get predictions from model #
+predict.train.logistic <- predict(model.logistic, type = "response")#
+predict.test.logistic <- predict(model.logistic, test, type = "response")#
+#
+train.logistic.pred <- prediction(predict.train.logistic, train$class)#
+train.logistic.roc <- performance(train.logistic.pred, "tpr","fpr")#
+train.logistic.auc <- (performance(train.logistic.pred, "auc"))@y.values#
+#
+test.logistic.pred <- prediction(predict.test.logistic, test$class)#
+test.logistic.roc <- performance(test.logistic.pred, "tpr","fpr")#
+test.logistic.auc <- (performance(test.logistic.pred, "auc"))@y.values#
+#
+# plot the ROC curves#
+plot(train.logistic.roc, col = "darkgreen", main = "ROC Curves for Logistic Regression Model")#
+plot(test.logistic.roc, col = "red",  add = TRUE)#
+abline(c(0,1))#
+# Draw a legend.#
+train.legend <- paste("Train: AUC=", round(train.logistic.auc[[1]], digits=3))#
+test.legend <- paste("Test : AUC=", round(test.logistic.auc[[1]], digits=3))#
+legend(0.6, 0.5, c(train.legend,test.legend), c(3,2))
+ls()
+library(MMST)
+data(bodyfat)
+ls()
+str(bodyfat)
+my.model <- lm(weight ~ age + neck,data = bodyfat)
+ls()
+str(my.model)
+summary(my.model)
+anova(my.model)
+head(bodyfat)
+tail(bodyfat)
+working.data.frame <- subset(bodyfat, subset = (neck > 37))
+str(working.data.frame)
+working.data.frame <- subset(bodyfat, subset = (neck > 37), select = c(weight, neck, age))
+str(working.data.frame)
+rep("A":"Z")
+A:Z
+alphabet
+alpha
+letters
+my.names <- rep(letters, times = 100)
+str(my.names)
+my.names <- sample(rep(letters, times = 1000))[1:5000]
+str(my.names)
+table(my.names)
+my.names <- sample(rep(letters, times = 100))[1:1000]
+table(my.names)
+my.names <- sample(rep(letters, times = 100))[1:500]
+table(my.names)
+set.seed(9999)#
+my.names <- data.frame(sample(rep(letters, times = 100))[1:500])
+str(my.names)
+set.seed(9999)#
+my.names <- data.frame(table(sample(rep(letters, times = 100))[1:500]))
+my.names
+my.names <- data.frame(table(sample(rep(letters, times = 100))[1:300]))
+my.names
+my.hist.data <- subset(my.names, subset = (Freq > 10))
+my.hist.data
+my.hist.subset <- subset(my.names, subset = (Freq > 10))
+my.names <- data.frame(table(sample(rep(letters, times = 100))[1:300]))#
+my.hist.select <- subset(my.names, subset = (Freq > 10)) #
+my.names.for.hist <- subset(my.names, select = names(my.hist.select))
+hist(my.names.for.hist)
+str(my.names.for.hist)
+set.seed(9999)#
+my.names.data <- sample(rep(letters, times = 100))[1:300])#
+my.table.data <- data.frame(table(my.names.data))#
+my.hist.select <- subset(my.table.data, subset = (Freq > 10)) #
+my.names.for.hist <- subset(my.names.data, select = names(my.hist.select))
+set.seed(9999)#
+my.names.data <- sample(rep(letters, times = 100))[1:300]#
+my.table.data <- data.frame(table(my.names.data))#
+my.hist.select <- subset(my.table.data, subset = (Freq > 10)) #
+my.names.for.hist <- subset(my.names.data, select = names(my.hist.select))
+my.hist.select
+my.table.data
+my.names.for.hist <- subset(my.names.data, select = names(my.hist.select$my.names.data))
+set.seed(9999)#
+my.names.data <- sample(rep(letters, times = 100))[1:300]#
+my.table.data <- data.frame(table(my.names.data))#
+my.hist.select <- subset(my.table.data, subset = (Freq > 10)) #
+my.names.for.hist <- my.names.data[, names(my.hist.select$my.names.data]
+set.seed(9999)#
+my.names.data <- sample(rep(letters, times = 100))[1:300]#
+my.table.data <- data.frame(table(my.names.data))#
+my.hist.select <- subset(my.table.data, subset = (Freq > 10)) #
+my.names.for.hist <- my.names.data[, names(my.hist.select$my.names.data)]
+names(my.names.data)
+my.names.data
+my.names.for.hist <- (my.names.data %in% names(my.hist.select$my.names.data))
+my.names.for.hist
+my.names.for.hist <- (my.names.data %in% my.hist.select$my.names.data)
+my.names.for.hist
+my.names.for.hist <- my.names.for.hist[my.names.data %in% my.hist.select$my.names.data]
+my.names.for.hist
+my.names.data
+my.names.for.hist <- my.names.data[my.names.data %in% my.hist.select$my.names.data]
+my.names.data
+set.seed(9999)#
+my.names.data <- sample(rep(letters, times = 100))[1:300]
+my.names.data
+my.table.data <- data.frame(table(my.names.data))
+my.table.data
+my.hist.select <- subset(my.table.data, subset = (Freq > 10))
+my.hist.select
+my.hist.data$my.names.data
+my.hist.select$my.names.data
+my.names.for.hist <- my.names.data[my.names.data %in% as.character(my.hist.select$my.names.data)]
+my.names.for.hist
+hist(my.names.for.hist)
+bar.chart(my.names.for.hist)
+barchart(my.names.for.hist)
+plot(my.names.for.hist)
+plot(bin(my.names.for.hist))
+barplot(my.names.for.hist)
+plot(*, type = "h")
+plot(my.names.for.hist, type = "h")
+library(ggplot2)
+my.names.for.plot
+library(ggplot2)#
+set.seed(9999)#
+my.names.data <- sample(rep(letters, times = 100))[1:300]#
+my.table.data <- data.frame(table(my.names.data))#
+my.plot.select <- subset(my.table.data, subset = (Freq > 10))#
+as.character(my.plot.select$my.names.data)#
+my.names.for.plot <- my.names.data[my.names.data %in% as.character(my.plot.select$my.names.data)]
+my.names.for.plot
+ggplot(my.names.for.plot, aes(my.names.for.plot)) + geom_bar()
+ggplot(my.names.for.plot, aes(my.names.for.plot), stat = bin) + geom_bar()
+ggplot(my.names.for.plot, aes(my.names.for.plot)) + geom_bar(stat = bin)
+ggplot(my.names.for.plot, aes(my.names.for.plot)) + geom_bar(stat = "bin")
+ggplot(factor(my.names.for.plot), aes(factor(my.names.for.plot))) + geom_bar(stat = "bin")
+barplot(VADeaths, border = "dark blue")
+barplot(my.names.for.plot)
+barplot(table(my.names.for.plot))
+library(ggplot2)#
+set.seed(9999)#
+my.names.data <- sample(rep(letters, times = 100))[1:300]#
+my.table.data <- data.frame(table(my.names.data))#
+my.plot.select <- subset(my.table.data, subset = (Freq > 10))#
+my.names.for.plot <- my.names.data[my.names.data %in% as.character(my.plot.select$my.names.data)]#
+barplot(table(my.names.for.plot))
+set.seed(9999)#
+my.names.data <- sample(rep(letters, times = 100))[1:300]#
+my.table.data <- data.frame(table(my.names.data))#
+my.plot.select <- subset(my.table.data, subset = (Freq > 10))#
+my.names.for.plot <- my.names.data[my.names.data %in% as.character(my.plot.select$my.names.data)]#
+barplot(table(my.names.for.plot))
+names <- rep(letters, times = 100)#
+set.seed(9999)#
+x <- runif(length(names))#
+y <- runif(length(names))#
+names.data.frame <- data.frame(names, x, y)#
+for (index.for.name in seq(along = letters)) {#
+  this.name.data <- subset(names.data.frame, #
+    bset = (names = letters[index.for.name]))#
+  with(this.name.data, plot(x,y))#
+  }
+this.name.data
+names <- rep(letters, times = 100)#
+set.seed(9999)#
+x <- runif(length(names))#
+y <- runif(length(names))#
+names.data.frame <- data.frame(names, x, y)#
+for (index.for.name in seq(along = letters)) {#
+  this.name.data <- subset(names.data.frame, #
+    subset = (names = letters[index.for.name]))#
+  with(this.name.data, plot(x,y))#
+  }
+names <- rep(letters, times = 100)#
+set.seed(9999)#
+x <- runif(length(names))#
+y <- runif(length(names))#
+names.data.frame <- data.frame(names, x, y)#
+for (index.for.name in seq(along = letters)) {#
+  this.name.data <- subset(names.data.frame, #
+    subset = (names == letters[index.for.name]))#
+  with(this.name.data, plot(x,y))#
+  }
+names <- rep(letters, times = 100)#
+set.seed(9999)#
+x <- runif(length(names))#
+y <- runif(length(names))#
+names.data.frame <- data.frame(names, x, y)#
+for (index.for.name in seq(along = letters)) {#
+  this.name.data <- subset(names.data.frame, #
+    subset = (names == letters[index.for.name]))#
+  with(this.name.data, plot(x,y. #
+  main = paste("Name =", letters[index.for.name]))#
+  }
+names <- rep(letters, times = 100)#
+set.seed(9999)#
+x <- runif(length(names))#
+y <- runif(length(names))#
+names.data.frame <- data.frame(names, x, y)#
+for (index.for.name in seq(along = letters)) {#
+  this.name.data <- subset(names.data.frame, #
+    subset = (names == letters[index.for.name]))#
+  with(this.name.data, plot(x,y. #
+  main = paste("Name =", letters[index.for.name])))#
+  }
+names <- rep(letters, times = 100)#
+set.seed(9999)#
+x <- runif(length(names))#
+y <- runif(length(names))#
+names.data.frame <- data.frame(names, x, y)#
+for (index.for.name in seq(along = letters)) {#
+  this.name.data <- subset(names.data.frame, #
+    subset = (names == letters[index.for.name]))#
+  with(this.name.data, plot(x,y, #
+  main = paste("Name =", letters[index.for.name])))#
+  }
+this.name.data
+initial.variable.list <- letters  # character vector of variables as letter names#
+#
+set.diff(initial.variable.list, "q")  # will give 25 letters (q left out)
+initial.variable.list <- letters  # character vector of variables as letter names#
+#
+setdiff(initial.variable.list, "q")  # will give 25 letters (q left out)
+options()
+library(e1071)
+android_word_set <- c("Android")
+mtpa_word_set <- c("Data", "scientists", "are", "methodological", "eclectics", "drawing", "from", "many", "scientific", "disciplines", "and", "translating", "the", "results", "of", "empirical", "research", "into", "words", "and", "pictures", "that", "management", "can", "understand")
+google_word_set <- c("Browse", "fast", "with", "the", "Chrome", "web", "browser" "on", "your", "Android", "phone", "and", "tablet", "Sign", "in", "to", "sync", "your", "Chrome", "browser", "experience", "from", "your", "computer", "to", "bring", "it", "with", "you", "anywhere", "you", "go", "Search", "fast")
+google_word_set <- c("Browse", "fast", "with", "the", "Chrome", "web", "browser", "on", "your", "Android", "phone", "and", "tablet", "Sign", "in", "to", "sync", "your", "Chrome", "browser", "experience", "from", "your", "computer", "to", "bring", "it", "with", "you", "anywhere", "you", "go", "Search", "fast")
+to.lower(google_word_set)
+tolower(google_word_set)
+tolower(unique(google_word_set))
+intersect(tolower(android_word_set), tolower(unique(google_word_set)))
+if(length(intersect(tolower(android_word_set), tolower(unique(google_word_set)))) > 0) #
+  cat("\nParagraph contains Android")#
+  else cat("\nParagraph does not contain Android")
+length(intersect(tolower(android_word_set), tolower(unique(google_word_set))))
+if(length(intersect(tolower(android_word_set), tolower(unique(google_word_set)))) > 0) #
+  cat("\nParagraph contains Android")
+if(length(intersect(tolower(android_word_set), tolower(unique(google_word_set)))) > 0) #
+  cat("\nParagraph contains Android")#
+  else cat("\nParagraph does not contain Android")
+if(length(intersect(tolower(android_word_set), tolower(unique(google_word_set)))) > 0) #
+  {cat("\nParagraph contains Android")}#
+  else {cat("\nParagraph does not contain Android")}
+mtpa_word_set <- c("Data", "scientists", "are", "methodological", "eclectics", "drawing", "from", "many", "scientific", "disciplines", "and", "translating", "the", "results", "of", "empirical", "research", "into", "words", "and", "pictures", "that", "management", "can", "understand")
+if(length(intersect(tolower(android_word_set), tolower(unique(mtpa_word_set)))) > 0) #
+  cat("\nParagraph contains Android")
+if(length(intersect(tolower(android_word_set), tolower(unique(google_word_set)))) == 0) #
+  cat("\nParagraph contains Android")
+mtpa_word_set <- c("Data", "scientists", "are", "methodological", "eclectics", "drawing", "from", "many", "scientific", "disciplines", "and", "translating", "the", "results", "of", "empirical", "research", "into", "words", "and", "pictures", "that", "management", "can", "understand")#
+#
+if(length(intersect(tolower(android_word_set), tolower(unique(mtpa_word_set)))) > 0) #
+  cat("\nParagraph contains Android")#
+#
+if(length(intersect(tolower(android_word_set), tolower(unique(mtpa_word_set)))) == 0) #
+  cat("\nParagraph does not contain Android")#
+#
+google_word_set <- c("Browse", "fast", "with", "the", "Chrome", "web", "browser", "on", "your", "Android", "phone", "and", "tablet", "Sign", "in", "to", "sync", "your", "Chrome", "browser", "experience", "from", "your", "computer", "to", "bring", "it", "with", "you", "anywhere", "you", "go", "Search", "fast")#
+#
+if(length(intersect(tolower(android_word_set), tolower(unique(google_word_set)))) > 0) #
+  cat("\nParagraph contains Android")#
+if(length(intersect(tolower(android_word_set), tolower(unique(google_word_set)))) == 0) #
+  cat("\nParagraph does not contain Android")
+Utilities for Spatial Data Analysis#
+#
+# user-defined function to convert degrees to radians#
+# needed for lat.long.distance function#
+degrees.to.radians <- function(x) { #
+  (pi/180)*x#
+  } # end degrees.to.radians function #
+#
+# user-defined function to convert distance between two points in miles#
+# when the two points (a and b) are defined by longitude and latitude#
+lat.long.distance <- function(longitude.a,latitude.a,longitude.b,latitude.b) {#
+  radius.of.earth <- 24872/(2*pi)#
+  c <- sin((degrees.to.radians(latitude.a) - #
+    degrees.to.radians(latitude.b))/2)^2 + #
+    cos(degrees.to.radians(latitude.a)) * #
+    cos(degrees.to.radians(latitude.b)) * #
+    sin((degrees.to.radians(longitude.a) -#
+    degrees.to.radians(longitude.b))/2)^2#
+  2 * radius.of.earth * (asin(sqrt(c)))#
+  } # end lat.long.distance function#
+# my home 1280 Boynton Street, Glendale, CA#
+# latitude: 34.129708#
+# longitude: -118.248318#
+#
+# Dodger Stadium ,#
+# latitude: 34.072736#
+# longitude: -118.240616#
+#
+lat.long.distance(-118.248318, 34.129708, -118.240616, 34.072736)
+Restricting ourselves to colors that we can generate and display using a computer monitor, we can generate a rainbow of hues using a hue, luminance, and saturation function like this:#
+#
+library(colorspace)  # bring in the color functions#
+#
+color.set <- hex(HLS(seq(0, 360, length = 60)[-60], 0.5, 1))#
+barplot(rep(1,length(color.set)), col = color.set, axes = FALSE)
+cb.palette <- c("#999999","#E69F00","#56B4E9","#009E73","#F0E442","#0072B2","#D55E00","#CC79A7") #
+barplot(rep(1,length(cb.palette)), col = cb.palette, axes = FALSE)#
+title("Color-Blind-Friendly Palette")
+x <- runif(200)
+set.seed(999)
+x <- runif(200)
+y <- runif(200)
+plot(x, y, xlab = "My Special Horizontal Axis Title", ylab = "My Response Title")
+title("My Plot Title")
+par(cex.axis = 2, mar = c(5,5,5,5))
+set.seed(999)
+x <- runif(200)
+y <- runif(200)
+plot(x, y, xlab = "My Special Horizontal Axis Title", ylab = "My Response Title")
+title("My Plot Title")
+library(MMST)
+data(bodyfat)
+http://cran.r-project.org/web/views/Graphics.html
+https://jakevdp.github.io/blog/2013/03/23/matplotlib-and-the-future-of-visualization-in-python/
+FNOL Model Specification Work#
+#
+library(randomForest)  # random forest algorithm for spec search#
+#
+input_data_set <- read.csv(file = "data_for_modeling.csv", stringsAsFactors = FALSE)#
+#
+# create year as continuous explanatory variable#
+input_data_set$veh_year <- as.numeric(input_data_set$VEH_YEAR_CODE) #
+#
+# define factor variables#
+input_data_set$VEH_MODEL_DESC <- factor(input_data_set$VEH_MODEL_DESC) #
+input_data_set$FILE_AIRBAG_CODE <- factor(input_data_set$FILE_AIRBAG_CODE) #
+input_data_set$VEH_YEAR_CODE <- factor(input_data_set$VEH_YEAR_CODE) #
+input_data_set$VEH_TYPE_CODE <- factor(input_data_set$VEH_TYPE_CODE) #
+input_data_set$COND_DRIVEABLE_CODE <- factor(input_data_set$COND_DRIVEABLE_CODE) #
+input_data_set$odom_cluster <- factor(input_data_set$odom_cluster) #
+input_data_set$sample <- factor(input_data_set$sample) #
+#
+# COND_PRIMARYIMPACT_CODE has many low-frequency codes, making it a problematic factor#
+# recode as a factor with 13 initial codes 0 through 12 and one catch-all code 13#
+input_data_set$COND_PRIMARYIMPACT_RECODE <- #
+    ifelse((input_data_set$COND_PRIMARYIMPACT_CODE < 13), #
+        input_data_set$COND_PRIMARYIMPACT_CODE, 13)#
+input_data_set$COND_PRIMARYIMPACT_RECODE <- factor(input_data_set$COND_PRIMARYIMPACT_RECODE) #
+# check the coding#
+with(input_data_set, print(table(COND_PRIMARYIMPACT_CODE, COND_PRIMARYIMPACT_RECODE)))#
+#
+# COND_SECONDARYIMPACT_CODE has many low-frequency codes, making it a problematic factor#
+# recode as a binary factor: secondary impact code present or not#
+input_data_set$COND_SECONDARYIMPACT_RECODE <- #
+    ifelse((input_data_set$COND_SECONDARYIMPACT_CODE == 0), 0, 1)#
+input_data_set$COND_SECONDARYIMPACT_RECODE <- factor(input_data_set$COND_SECONDARYIMPACT_RECODE) #
+# check the coding#
+with(input_data_set, print(table(COND_SECONDARYIMPACT_CODE, COND_SECONDARYIMPACT_RECODE)))#
+#
+# approach here is to use ordinary least squares with a log-transformed response#
+# rather than use generalized linear model with log link and gaussian family spec#
+# results should be very close with lm() rather than glm()#
+# and these will be obtained much faster... also easier to program in Java later#
+input_data_set$response <- log(input_data_set$FILE_AMT)#
+#
+# fix problems with low frequency states by dropping VI, PR, and GU #
+# and select a subset of states to speed up the process of looking #
+# at alternative model specs... five selected states across regions of US#
+selected_states <- c("CO","GA","IL","MA","WA")  # character strings currently#
+working_data_set <- subset(input_data_set, #
+    subset = (VEH_OWNERSTATE_CODE %in% selected_states)) #
+# select a subset of clusters to reduce the sample size for spec search #
+working_data_set <- subset(working_data_set, #
+    subset = (cluster_f %in% 1:4))        #
+working_data_set$VEH_OWNERSTATE_CODE <- factor(working_data_set$VEH_OWNERSTATE_CODE) #
+working_data_set$cluster_f <- factor(working_data_set$cluster_f) #
+# select a subset of higher frequency automobile makes#
+selected_vehicle_makes <- c("ACUR","BUIC","CHEV","CHRY","DODG","FORD",#
+     "GMC","HOND", "JEEP", "MAZD", "MERC", "MITS", "NISS", "OLDS", "PONT", "SATU", "SUBA", "TOYO")#
+working_data_set <- subset(working_data_set, #
+    subset = (VEH_MAKE_CODE %in% selected_vehicle_makes)) #
+working_data_set$VEH_MAKE_CODE <- factor(working_data_set$VEH_MAKE_CODE) #
+print(str(working_data_set))#
+with(working_data_set, print(table(VEH_OWNERSTATE_CODE, cluster_f, useNA = "always")))#
+#
+# -----------------------------------------#
+# SIMPLE NAMES FOR INTERACTION DEFINITIONS  #
+# -----------------------------------------#
+# nine variables implies 9*8/2 = 36 two-factor interactions#
+working_data_set$A <- working_data_set$VEHICLE_ODOMETER#
+working_data_set$B <- working_data_set$veh_year#
+working_data_set$C <- working_data_set$FILE_AIRBAG_CODE#
+working_data_set$D <- working_data_set$VEH_OWNERSTATE_CODE#
+working_data_set$E <- working_data_set$VEH_MAKE_CODE#
+working_data_set$F <- working_data_set$VEH_TYPE_CODE#
+working_data_set$G <- working_data_set$COND_PRIMARYIMPACT_RECODE#
+working_data_set$H <- working_data_set$COND_SECONDARYIMPACT_RECODE#
+working_data_set$I <- working_data_set$cluster_f#
+#
+working_data_set$AB <- interaction(working_data_set$A, working_data_set$B) #
+working_data_set$AC <- interaction(working_data_set$A, working_data_set$C)#
+working_data_set$AD <- interaction(working_data_set$A, working_data_set$D)#
+working_data_set$AE <- interaction(working_data_set$A, working_data_set$E)#
+working_data_set$AF <- interaction(working_data_set$A, working_data_set$F)#
+working_data_set$AG <- interaction(working_data_set$A, working_data_set$G)#
+working_data_set$AH <- interaction(working_data_set$A, working_data_set$H)#
+working_data_set$AI <- interaction(working_data_set$A, working_data_set$I)#
+#
+working_data_set$BC <- interaction(working_data_set$B, working_data_set$C)#
+working_data_set$BD <- interaction(working_data_set$B, working_data_set$D)#
+working_data_set$BE <- interaction(working_data_set$B, working_data_set$E)#
+working_data_set$BF <- interaction(working_data_set$B, working_data_set$F)#
+working_data_set$BG <- interaction(working_data_set$B, working_data_set$G)#
+working_data_set$BH <- interaction(working_data_set$B, working_data_set$H)#
+working_data_set$BI <- interaction(working_data_set$B, working_data_set$I)#
+#
+working_data_set$CD <- interaction(working_data_set$C, working_data_set$D)#
+working_data_set$CE <- interaction(working_data_set$C, working_data_set$E)#
+working_data_set$CF <- interaction(working_data_set$C, working_data_set$F)#
+working_data_set$CG <- interaction(working_data_set$C, working_data_set$G)#
+working_data_set$CH <- interaction(working_data_set$C, working_data_set$H)#
+working_data_set$CI <- interaction(working_data_set$C, working_data_set$I)#
+#
+working_data_set$DE <- interaction(working_data_set$D, working_data_set$E)#
+working_data_set$DF <- interaction(working_data_set$D, working_data_set$F)#
+working_data_set$DG <- interaction(working_data_set$D, working_data_set$G)#
+working_data_set$DH <- interaction(working_data_set$D, working_data_set$H)#
+working_data_set$DI <- interaction(working_data_set$D, working_data_set$I)#
+#
+working_data_set$EF <- interaction(working_data_set$E, working_data_set$F)#
+working_data_set$EG <- interaction(working_data_set$E, working_data_set$G)#
+working_data_set$EH <- interaction(working_data_set$E, working_data_set$H)#
+working_data_set$EI <- interaction(working_data_set$E, working_data_set$I)#
+#
+working_data_set$FG <- interaction(working_data_set$F, working_data_set$G)#
+working_data_set$FH <- interaction(working_data_set$F, working_data_set$H)#
+working_data_set$FI <- interaction(working_data_set$F, working_data_set$I)#
+#
+working_data_set$GH <- interaction(working_data_set$G, working_data_set$H)#
+working_data_set$GI <- interaction(working_data_set$G, working_data_set$I)#
+#
+working_data_set$HI <- interaction(working_data_set$H, working_data_set$I)#
+# -----------------------------------------#
+# DATA SUBSETS FOR TRAINING AND VALIDATION  #
+# -----------------------------------------#
+drivable_set <- subset(working_data_set, subset = (COND_DRIVEABLE_CODE == "Y"))#
+nondrivable_set <- subset(working_data_set, subset = (COND_DRIVEABLE_CODE == "N"))#
+#
+drivable_training_set <- subset(drivable_set, subset = (sample == "D")) #
+drivable_validation_set <- subset(drivable_set, subset = (sample == "V")) #
+#
+nondrivable_training_set <- subset(nondrivable_set, subset = (sample == "D")) #
+nondrivable_validation_set <- subset(nondrivable_set, subset = (sample == "V")) #
+#
+# ensure that there are sufficient observations for spec search#
+with(drivable_training_set, print(table(VEH_OWNERSTATE_CODE, cluster_f, useNA = "always")))#
+with(drivable_validation_set, print(table(VEH_OWNERSTATE_CODE, cluster_f, useNA = "always")))#
+with(nondrivable_training_set, print(table(VEH_OWNERSTATE_CODE, cluster_f, useNA = "always")))#
+with(nondrivable_validation_set, print(table(VEH_OWNERSTATE_CODE, cluster_f, useNA = "always")))#
+#
+# -----------------------------------------#
+# INITIAL ALTERNATIVE MODELS  #
+# -----------------------------------------#
+# base model from previous work using SAS#
+base_model_spec <- {response ~ FILE_AIRBAG_CODE +#
+VEH_OWNERSTATE_CODE +#
+VEH_YEAR_CODE +#
+VEH_MAKE_CODE +#
+VEH_TYPE_CODE +#
+COND_PRIMARYIMPACT_RECODE +#
+COND_SECONDARYIMPACT_RECODE +#
+odom_cluster +#
+cluster_f +#
+VEH_OWNERSTATE_CODE * FILE_AIRBAG_CODE +#
+VEH_YEAR_CODE * FILE_AIRBAG_CODE +#
+odom_cluster * FILE_AIRBAG_CODE +#
+VEH_TYPE_CODE * FILE_AIRBAG_CODE +#
+VEH_MAKE_CODE * VEH_TYPE_CODE +#
+VEH_MAKE_CODE * FILE_AIRBAG_CODE +#
+COND_PRIMARYIMPACT_RECODE * FILE_AIRBAG_CODE +#
+COND_PRIMARYIMPACT_RECODE * COND_SECONDARYIMPACT_RECODE +#
+cluster_f * FILE_AIRBAG_CODE} #
+#
+additive_model_spec <- {response ~ FILE_AIRBAG_CODE +#
+VEH_OWNERSTATE_CODE +#
+VEH_YEAR_CODE +#
+VEH_MAKE_CODE +#
+VEH_TYPE_CODE +#
+COND_PRIMARYIMPACT_RECODE +#
+COND_SECONDARYIMPACT_RECODE +#
+odom_cluster +#
+cluster_f} #
+#
+# not clear what is gained by making mileage a factor variable#
+additive_model_odometer_spec <- {response ~ FILE_AIRBAG_CODE +#
+VEH_OWNERSTATE_CODE +#
+VEH_YEAR_CODE +#
+VEH_MAKE_CODE +#
+VEH_TYPE_CODE +#
+COND_PRIMARYIMPACT_RECODE +#
+COND_SECONDARYIMPACT_RECODE +#
+VEHICLE_ODOMETER +#
+cluster_f} #
+#
+# not clear what is gained by making mileage a factor variable#
+additive_model_odometer_spec <- {response ~ FILE_AIRBAG_CODE +#
+VEH_OWNERSTATE_CODE +#
+VEH_YEAR_CODE +#
+VEH_MAKE_CODE +#
+VEH_TYPE_CODE +#
+COND_PRIMARYIMPACT_RECODE +#
+COND_SECONDARYIMPACT_RECODE +#
+VEHICLE_ODOMETER +#
+cluster_f} #
+#
+# also not clear what is gained by making vehicle year a factor variable#
+additive_model_odometer_year_spec <- {response ~ FILE_AIRBAG_CODE +#
+VEH_OWNERSTATE_CODE +#
+VEH_MAKE_CODE +#
+VEH_TYPE_CODE +#
+COND_PRIMARYIMPACT_RECODE +#
+COND_SECONDARYIMPACT_RECODE +#
+VEHICLE_ODOMETER +#
+veh_year +#
+cluster_f} #
+#
+# -----------------------------------------#
+# SPEC SEARCH USING SIMPLE VARIABLE NAMES  #
+# -----------------------------------------#
+model_search_spec_check <- {response ~ A + B + C + D + E + F + G + H + I +#
+    A*B + A*C + A*D + A*E + A*F + A*G + A*H + A*I +#
+          B*C + B*D + B*E + B*F + B*G + B*H + B*I +#
+                C*D + C*E + C*F + C*G + C*H + C*I +      #
+                      D*E + D*F + D*G + D*H + D*I +  #
+                            E*F + E*G + E*H + E*I +  #
+                                  F*G + F*H + F*I + #
+                                        G*H + G*I +#
+                                              H*I}#
+model_search_spec <- {response ~ A + B + C + D + E + F + G + H + I +#
+    AB + AC + AD + AE + AF + AG + AH + AI +#
+          BC + BD + BE + BF + BG + BH + BI +#
+                CD + CE + CF + CG + CH + CI +      #
+                      DE + DF + DG + DH + DI +  #
+                            EF + EG + EH + EI +  #
+                                  FG + FH + FI + #
+                                       GH + GI +#
+                                              HI}#
+selected_model_spec <- base_model_spec#
+selected_model_spec <- additive_model_spec#
+selected_model_spec <- additive_model_odometer_spec#
+selected_model_spec <- additive_model_odometer_year_spec#
+selected_model_spec <- model_search_spec_check#
+selected_model_spec <- model_search_spec
+library(ggplot2) #
+#
+original.facebook.data.frame <- read.csv(file = "Omnibus_Dec_2012_csv.csv")#
+#
+# define factor variable for facebook user#
+original.facebook.data.frame$facebook_user <- ifelse((original.facebook.data.frame$pial2 == 1),2,1)#
+original.facebook.data.frame$facebook_user <- factor(original.facebook.data.frame$facebook_user,#
+  levels = c(1,2), labels = c("Non-User","User"))#
+#
+# define new data fame for work#
+working.data.frame <- original.facebook.data.frame#
+#
+# define Internet user data frame#
+internet.user.data.frame <- subset(working.data.frame, subset = (intuse == 1))#
+#
+x <- mosaic( ~facebook_user + employ, data = internet.user.data.frame,#
+#
+  labeling_args = list(set_varnames = c(employ = "Level of Employment", facebook_user = "Facebook Usage")),#
+#
+  highlighting = "facebook_user",#
+#
+  highlighting_fill = c("cornsilk","violet"),#
+#
+  rot_labels = c(left = 0, top = 0),#
+#
+  pos_labels = c("center","center"),#
+#
+  offset_labels = c(0.0,0.6))#
+#
+y <- mosaic( ~facebook_user + sex, data = internet.user.data.frame,#
+  labeling_args = list(set_varnames = c(sex = "", facebook_user = "Facebook Usage")),#
+  highlighting = "facebook_user",#
+  highlighting_fill = c("cornsilk","violet"),#
+  rot_labels = c(left = 0, top = 0),#
+  pos_labels = c("center","center"),#
+  offset_labels = c(0.0,0.6))#
+z <- mosaic( ~facebook_user + par, data = internet.user.data.frame,#
+  labeling_args = list(set_varnames = c(par = "Parent", facebook_user = "Facebook Usage")),#
+  highlighting = "facebook_user",#
+  highlighting_fill = c("cornsilk","violet"),#
+  rot_labels = c(left = 0, top = 0),#
+  pos_labels = c("center","center"),#
+  offset_labels = c(0.0,0.6))#
+a <- mosaic( ~facebook_user + educ2, data = internet.user.data.frame,#
+  labeling_args = list(set_varnames = c(educ2 = "Educational Level", facebook_user = "Facebook Usage")),#
+  highlighting = "facebook_user",#
+  highlighting_fill = c("cornsilk","violet"),#
+  rot_labels = c(left = 0, top = 0),#
+  pos_labels = c("center","center"),#
+  offset_labels = c(0.0,0.6))#
+ b <- mosaic( ~facebook_user + hisp, data = internet.user.data.frame,#
+  labeling_args = list(set_varnames = c(hisp = "Hispanic", facebook_user = "Facebook Usage")),#
+  highlighting = "facebook_user",#
+  highlighting_fill = c("cornsilk","violet"),#
+  rot_labels = c(left = 0, top = 0),#
+  pos_labels = c("center","center"),#
+  offset_labels = c(0.0,0.6))#
+ c <- mosaic( ~facebook_user + race, data = internet.user.data.frame,#
+  labeling_args = list(set_varnames = c(race = "Race", facebook_user = "Facebook Usage")),#
+  highlighting = "facebook_user",#
+  highlighting_fill = c("cornsilk","violet"),#
+  rot_labels = c(left = 0, top = 0),#
+  pos_labels = c("center","center"),#
+  offset_labels = c(0.0,0.6))#
+ d <- mosaic( ~facebook_user + inc, data = internet.user.data.frame,#
+  labeling_args = list(set_varnames = c(inc = "Income", facebook_user = "Facebook Usage")),#
+  highlighting = "facebook_user",#
+  highlighting_fill = c("cornsilk","violet"),#
+  rot_labels = c(left = 0, top = 0),#
+  pos_labels = c("center","center"),#
+  offset_labels = c(0.0,0.6))
+library(vcd)#
+library(ggplot2) #
+#
+original.facebook.data.frame <- read.csv(file = "Omnibus_Dec_2012_csv.csv")#
+#
+# define factor variable for facebook user#
+original.facebook.data.frame$facebook_user <- ifelse((original.facebook.data.frame$pial2 == 1),2,1)#
+original.facebook.data.frame$facebook_user <- factor(original.facebook.data.frame$facebook_user,#
+  levels = c(1,2), labels = c("Non-User","User"))#
+#
+# define new data fame for work#
+working.data.frame <- original.facebook.data.frame#
+#
+# define Internet user data frame#
+internet.user.data.frame <- subset(working.data.frame, subset = (intuse == 1))#
+#
+x <- mosaic( ~facebook_user + employ, data = internet.user.data.frame,#
+#
+  labeling_args = list(set_varnames = c(employ = "Level of Employment", facebook_user = "Facebook Usage")),#
+#
+  highlighting = "facebook_user",#
+#
+  highlighting_fill = c("cornsilk","violet"),#
+#
+  rot_labels = c(left = 0, top = 0),#
+#
+  pos_labels = c("center","center"),#
+#
+  offset_labels = c(0.0,0.6))#
+#
+y <- mosaic( ~facebook_user + sex, data = internet.user.data.frame,#
+  labeling_args = list(set_varnames = c(sex = "", facebook_user = "Facebook Usage")),#
+  highlighting = "facebook_user",#
+  highlighting_fill = c("cornsilk","violet"),#
+  rot_labels = c(left = 0, top = 0),#
+  pos_labels = c("center","center"),#
+  offset_labels = c(0.0,0.6))#
+z <- mosaic( ~facebook_user + par, data = internet.user.data.frame,#
+  labeling_args = list(set_varnames = c(par = "Parent", facebook_user = "Facebook Usage")),#
+  highlighting = "facebook_user",#
+  highlighting_fill = c("cornsilk","violet"),#
+  rot_labels = c(left = 0, top = 0),#
+  pos_labels = c("center","center"),#
+  offset_labels = c(0.0,0.6))#
+a <- mosaic( ~facebook_user + educ2, data = internet.user.data.frame,#
+  labeling_args = list(set_varnames = c(educ2 = "Educational Level", facebook_user = "Facebook Usage")),#
+  highlighting = "facebook_user",#
+  highlighting_fill = c("cornsilk","violet"),#
+  rot_labels = c(left = 0, top = 0),#
+  pos_labels = c("center","center"),#
+  offset_labels = c(0.0,0.6))#
+ b <- mosaic( ~facebook_user + hisp, data = internet.user.data.frame,#
+  labeling_args = list(set_varnames = c(hisp = "Hispanic", facebook_user = "Facebook Usage")),#
+  highlighting = "facebook_user",#
+  highlighting_fill = c("cornsilk","violet"),#
+  rot_labels = c(left = 0, top = 0),#
+  pos_labels = c("center","center"),#
+  offset_labels = c(0.0,0.6))#
+ c <- mosaic( ~facebook_user + race, data = internet.user.data.frame,#
+  labeling_args = list(set_varnames = c(race = "Race", facebook_user = "Facebook Usage")),#
+  highlighting = "facebook_user",#
+  highlighting_fill = c("cornsilk","violet"),#
+  rot_labels = c(left = 0, top = 0),#
+  pos_labels = c("center","center"),#
+  offset_labels = c(0.0,0.6))#
+ d <- mosaic( ~facebook_user + inc, data = internet.user.data.frame,#
+  labeling_args = list(set_varnames = c(inc = "Income", facebook_user = "Facebook Usage")),#
+  highlighting = "facebook_user",#
+  highlighting_fill = c("cornsilk","violet"),#
+  rot_labels = c(left = 0, top = 0),#
+  pos_labels = c("center","center"),#
+  offset_labels = c(0.0,0.6))
+x <- c(1, 2, 3, 4)
+type(x)
+class(x)
+y <- factor(x)
+class(y)
+z <- numeric(y)
+z <- as.numeric(y)
+class(z)
+from_node <- c(1, 2, 3, 4, 5)#
+to_node <- c(2, 3, 5, 6, 7)#
+edgelist <- data.frame(from_node, to_node)
+print(edgelist)
+select_nodes <- c(1, 2, 5)#
+#
+sample_edgelist <- subset(edgelist, #
+    subset = (from_node %in% select_nodes))#
+sample_edgelist <- subset(sample_edgelist,#
+    subset = (to_node %in% select_nodes))#
+print(sample_edgelist)
+Suppose I have an edgelist given as follows:#
+#
+from_node <- c(1, 2, 3, 4, 5)#
+to_node <- c(2, 3, 5, 6, 7)#
+edgelist <- data.frame(from_node, to_node)#
+#
+print(edgelist)#
+#
+# Now let's sample just nodes 1, 3, and 5.#
+#
+select_nodes <- c(1, 2, 5)#
+#
+sample_edgelist <- subset(edgelist, #
+    subset = (from_node %in% select_nodes))
+sample_edgelist
+Suppose I have an edgelist given as follows:#
+#
+from_node <- c(1, 2, 3, 4, 5)#
+to_node <- c(2, 3, 5, 6, 7)#
+edgelist <- data.frame(from_node, to_node)#
+#
+print(edgelist)#
+#
+# Now let's sample just nodes 1, 3, and 5.#
+#
+select_nodes <- c(1, 3, 5)#
+#
+sample_edgelist <- subset(edgelist, #
+    subset = (from_node %in% select_nodes))#
+sample_edgelist <- subset(sample_edgelist,#
+    subset = (to_node %in% select_nodes))#
+print(sample_edgelist)
+Suppose I have an edgelist given as follows:#
+#
+from_node <- c(1, 2, 3, 4, 5, 5)#
+to_node <- c(2, 3, 5, 6, 7, 1)#
+edgelist <- data.frame(from_node, to_node)#
+#
+print(edgelist)#
+#
+# Now let's sample just nodes 1, 3, and 5.#
+#
+select_nodes <- c(1, 3, 5)#
+#
+sample_edgelist <- subset(edgelist, #
+    subset = (from_node %in% select_nodes))#
+sample_edgelist <- subset(sample_edgelist,#
+    subset = (to_node %in% select_nodes))#
+print(sample_edgelist)  #
+#
+# note that the resulting list contains edges#
+# that have both from- and to-nodes in the#
+# select_nodes list
+exp(0.001)
+exp(0.001)/(1+exp(0.001))
+x = 10
+xmin = 3
+x - xmin
+source("MDS_Exhibit_D1.R")
